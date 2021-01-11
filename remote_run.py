@@ -7,13 +7,17 @@
 
 import os
 from collections import deque
+from os.path import join
+from paramiko import SSHClient
+from paramiko import AutoAddPolicy
+import threading
 
 # Settings
 py_files = []
-enter_file = '' # the file to excute
-py_folders = [(current_root_folder := './')] # Recursively push the current folder to the remote server by default
-exclude = {''} # like .gitignore
-exclude_file_trie = {} # Trie for excluding specified files
+enter_file = ''  # the file to execute
+py_folders = [(current_root_folder := './')]  # Recursively push the current folder to the remote server by default
+exclude = {''}  # like .gitignore
+exclude_file_trie = {}  # Trie for excluding specified files
 remote_python_interpreter = '/usr/bin/python3'
 remote_username = ''
 remote_password = ''
@@ -22,11 +26,6 @@ remote_ip = ''
 
 
 def run():
-    from os.path import join
-    from paramiko import SSHClient
-    from paramiko import AutoAddPolicy
-    import threading
-
     traverse_folder()
 
     ssh = SSHClient()
@@ -54,9 +53,9 @@ def run():
             sftp.put(f, join(target_dir, components[-1]).replace('\\', '/'))
 
         if len(py_files) > 0:
-            # the first file will be the main file
+            # the enter file will be the main file
             main_py = join(remote_current_working_directory, enter_file).replace('\\', '/')
-            print(f'###################### RUN {py_files[0]} ######################')
+            print(f'###################### RUN {enter_file} ######################')
             # execute the code
 
             stdin, stdout, stderr = ssh.exec_command(
@@ -95,6 +94,7 @@ def run():
     sftp.close()
     ssh.close()
 
+
 def generate_exclude_trie():
     trie = {}
     for name in exclude:
@@ -106,7 +106,8 @@ def generate_exclude_trie():
         node['FLAG'] = True
     return trie
 
-def is_in_exclude(file_name:str):
+
+def is_in_exclude(file_name: str):
     global exclude_file_trie
     node = exclude_file_trie
     if not node:
@@ -120,6 +121,7 @@ def is_in_exclude(file_name:str):
             return False
         node = node[char]
     return bool('FLAG' in node)
+
 
 def traverse_folder():
     """
